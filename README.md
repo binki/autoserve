@@ -11,6 +11,11 @@ Ways one might deploy a node-based webapp:
 
 # Usage
 
+`script.cgi`:
+
+    #!/usr/bin/env node
+    'use strict';
+    
     const httpAutodetect = require('http-autodetect');
     
     const app = function (req, res) {
