@@ -3,22 +3,12 @@
 
 var fs = require('fs');
 var process = require('process');
-var S_IFSOCK;
-
-S_IFSOCK = (fs.constants || {}).S_IFSOCK;
-if (S_IFSOCK === undefined) {
-    S_IFSOCK = (process.binding('constants') || {}).S_IFSOCK;
-}
-if (S_IFSOCK === undefined) {
-    console.log('hi');
-    console.warn('Unable to find S_IFSOCK constant. FastCGI will not be detected.');
-}
 
 module.exports = function (app) {
-    // Autodetect node-fastcgi
-    // https://github.com/fbbdev/node-fastcgi/issues/10#issuecomment-238019124
-    if (fs.fstatSync(0).mode & S_IFSOCK) {
-        require('node-fastcgi').createServer(app).listen();
+    // Support FastCGI
+    var fcgi = require('node-fastcgi');
+    if (fcgi.isService()) {
+        fcgi.createServer(app).listen();
         return;
     }
 
