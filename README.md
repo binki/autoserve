@@ -35,6 +35,8 @@ You need extra middleware to get Express to respect
 [express-http-autodetect](https://github.com/binki/express-http-autodetect)
 for that or use this snippet:
 
+    #!/usr/bin/env node
+    'use strict';
     const expressHttpAutodetect = require('express-http-autodetect');
     
     // If you followed the Express-4 migration guide or used
