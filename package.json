@@ -1,7 +1,7 @@
 {
     "name": "http-autodetect",
     "description": "Support deployment via FastCGI, Passenger, or node http.",
-    "version": "0.0.0",
+    "version": "0.0.1-pre",
     "license": "MIT",
     "repository": "https://github.com/binki/http-autodetect",
     "dependencies": {
