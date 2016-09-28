@@ -1,5 +1,3 @@
-This is being renamed to [`autoserve`](https://npmjs.com/package/autoserve).
-
 Enable a webapp to get the optimal `http` implementation based on how
 it is deployed. Also provide a way to get the `baseUrl` of the
 deployment.
@@ -18,17 +16,17 @@ Ways one might deploy a node-based webapp:
     #!/usr/bin/env node
     'use strict';
     
-    const httpAutodetect = require('http-autodetect');
+    const autoserve = require('autoserve');
     
     const app = function (req, res) {
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', });
         // It is recommended to use a framework like express to calculate
         // the host and protocol of your deployment. getBaseUrl() only
         // solves the path portion of the deployment.
-        res.end(`Hello, World! I am deployed at https://${req.headers.host}${httpAutodetect.getBaseUrl(req)}`);
+        res.end(`Hello, World! I am deployed at https://${req.headers.host}${autoserve.getBaseUrl(req)}`);
     };
     
-    httpAutodetect(app);
+    autoserve(app);
 
 ## Express Usage
 
