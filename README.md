@@ -1,3 +1,5 @@
+This is being renamed to [`autoserve`](https://npmjs.com/package/autoserve).
+
 Enable a webapp to get the optimal `http` implementation based on how
 it is deployed. Also provide a way to get the `baseUrl` of the
 deployment.
