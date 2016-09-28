@@ -1,4 +1,3 @@
-/* -*- mode: js2; indent-tabs-mode: nil; -*- */
 'use strict';
 
 var fs = require('fs');
