@@ -3,51 +3,96 @@
 var fs = require('fs');
 var process = require('process');
 
+const platforms = {};
+var detectedPlatform;
+
 module.exports = function (app) {
-    // Support FastCGI
-    var fcgi = require('node-fastcgi');
-    if (fcgi.isService()) {
-        fcgi.createServer(app).listen();
-        return;
-    }
-
-    // Autodetect CGI (in the future)
-    if (process.env.SCRIPT_NAME) {
-        console.log('Pure CGI mode is not supported yet.');
-    }
-
-    // The way people apparently normally launch node web servers:
-    var http = require('http');
-
-    var port = (typeof app.get === 'function' ? app.get('port') : undefined)
-            || process.env.PORT
-            || 3000;
-    http.createServer(app).listen(port, function () {
-        console.log('Listening on port ' + port);
-    });
+    module.exports.detect().serve(app);
 };
 
-var staticBaseUrl;
-
-module.exports.getBaseUrl = function (req) {
-    // node-fastcgi: https://github.com/fbbdev/node-fastcgi/issues/11
-    if (req.socket.params) {
-        return req.socket.params.SCRIPT_NAME;
+module.exports.detect = function () {
+    const platformsByWeight = {};
+    for (let platformName in platforms) {
+        const platform = platforms[platformName];
+        const sameWeightPlatforms = platformsByWeight[platform.weight] = platformsByWeight[platform.weight] || [];
+        sameWeightPlatforms.push(platform);
     }
+    const weightsList = [];
+    for (let i in platformsByWeight) {
+        weightsList.push(platformsByWeight[i][0].weight);
+    }
+    weightsList.sort();
 
-    if (staticBaseUrl === undefined) {
-        if (process.env.SCRIPT_NAME) {
-            // pure CGI
-            staticBaseUrl = process.env.SCRIPT_NAME;
-        } else if (process.env.PASSENGER_BASE_URI) {
-            // Passenger,
-            // https://github.com/remko/base-uri/blob/ff560528afd75910a3bdba7a917383fa347ce2b6/index.js#L18
-            // https://github.com/phusion/passenger/blob/69878eb58cc6273397755e62a99bb7394ab66b6d/test/stub/node/app.js#L23
-            staticBaseUrl = process.env.PASSENGER_BASE_URI;
-        } else {
-            // node http module
-            staticBaseUrl = '/';
+    for (let weight of weightsList) {
+        const sameWeightPlatforms = platformsByWeight[weight];
+        const detectedPlatforms = [];
+        for (let platform of sameWeightPlatforms) {
+            if (platform.detect()) {
+                detectedPlatforms.push(platform);
+            }
+        }
+        if (detectedPlatforms.length) {
+            if (detectedPlatforms.length > 1) {
+                const detectedPlatformsString = detectedPlatforms.reduce(function (s, platform) {
+                    if (s) {
+                        s += ', ';
+                    }
+                    return s + platform.name;
+                });
+                throw new Error(`Multiple platforms at weight ${weight} were detected. Only one platform may be detected for any given weight. Please adjust weights or fix false positives. Platforms: ${detectedPlatformsString}`);
+            }
+
+            detectedPlatform = detectedPlatforms[0];
+            return detectedPlatform;
         }
     }
-    return staticBaseUrl;
 };
+
+module.exports.getBaseUrl = function (req) {
+    if (detectedPlatform) {
+        return detectedPlatform.getBaseUrl(req);
+    }
+    throw new Error('A platform has not been detected. Please call autoserve() or autoserve.serve() or autoserve.detect() first.');
+};
+
+module.exports.platforms = Object.freeze(Object.create(platforms));
+
+module.exports.register = function (platform) {
+    platform = Object.freeze(Object.assign({
+        getBaseUrl: function () {
+            return '/';
+        },
+        weight: 0,
+    }, platform));
+
+    if (!platform.name) {
+        throw new Error('Platform is missing name.');
+    }
+
+    if ((platform.weight|0) !== platform.weight) {
+        throw new Error(`Platform ${platform.name} weight “${platform.weight}”is not an integer.`);
+    }
+
+    for (let requiredFunction of [
+        'detect',
+        'serve',
+    ]) {
+        if (typeof platform[requiredFunction] !== 'function') {
+            throw new Error(`Platform ${platform.name} is missing ${requiredFunction}().`);
+        }
+    }
+    platforms[platform.name] = platform;
+};
+
+module.exports.serve = module.exports;
+
+Object.freeze(module.exports);
+
+// Register core/built-in platforms.
+for (let platformName of [
+    'http',
+    'node-fastcgi',
+    'passenger',
+]) {
+    module.exports.register(require(`./platform/${platformName}`));
+}
