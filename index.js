@@ -91,8 +91,21 @@ Object.freeze(module.exports);
 // Register core/built-in platforms.
 for (let platformName of [
     'http',
-    'node-fastcgi',
     'passenger',
 ]) {
     module.exports.register(require(`./platform/${platformName}`));
+}
+for (let platformModuleName of [
+    'autoserve-platform-node-fastcgi',
+]) {
+    // Conditionally require() to support optional dependencies.
+    // http://stackoverflow.com/a/21740407/429091
+    let platform;
+    try {
+        platform = require(platformModuleName);
+    } catch (ex) {
+    }
+    if (platform) {
+        module.exports.register(platform);
+    }
 }
