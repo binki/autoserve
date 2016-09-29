@@ -62,6 +62,11 @@ module.exports.register = function (platform) {
         getBaseUrl: function () {
             return '/';
         },
+        // Provide options as a mutable object so that, e.g., a
+        // deployment script could set up a custom platform and set
+        // options on it before launching the autoserve-supporting
+        // app.
+        options: {},
         weight: 0,
     }, platform));
 

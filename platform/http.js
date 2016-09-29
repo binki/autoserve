@@ -9,8 +9,7 @@ module.exports = {
         // The way people apparently normally launch node web servers:
         var http = require('http');
 
-        var port = (typeof app.get === 'function' ? app.get('port') : undefined)
-                || process.env.PORT
+        var port = this.options.port
                 || 3000;
         http.createServer(app).listen(port, function () {
             console.log('Listening on port ' + port);
