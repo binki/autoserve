@@ -4,17 +4,9 @@ var fs = require('fs');
 var process = require('process');
 
 const platforms = {};
-var detectedPlatform;
 
 module.exports = function (app) {
-    // Run in “globals” mode. If you call this method directly, you
-    // cause the module to set itself to support a particular
-    // platform. Then you can directly call getBaseUrl(req) on the
-    // module to discover the baseUrl for a particular request.  If
-    // you want finger grained control over instances, call detect()
-    // directly, but then you have to manually save the returned
-    // platform and call getBaseUrl(req) on that directly.
-    detectedPlatform = module.exports.detect();
+    const detectedPlatform = module.exports.detect();
     if (!detectedPlatform) {
         throw new Error('No supported platform detected.');
     }
@@ -52,17 +44,24 @@ module.exports.detect = function () {
                 });
                 throw new Error(`Multiple platforms at weight ${weight} were detected. Only one platform may be detected for any given weight. Please adjust weights or fix false positives. Platforms: ${detectedPlatformsString}`);
             }
-
-            return detectedPlatforms[0];
+            // Produce the polished “platform” which sets
+            // request.baseUrl. This might cause confusion because
+            // detect() returns a “platform” that behaves differently
+            // from the “platform” you would register via register()…
+            const detectedPlatform = detectedPlatforms[0];
+            const detectedPlatformServe = detectedPlatform.serve;
+            return Object.assign({}, detectedPlatform, {
+                serve: function (app) {
+                    detectedPlatformServe.call(this, function (req, res) {
+                        if (!req.baseUrl) {
+                            req.baseUrl = detectedPlatform.getBaseUrl(req);
+                        }
+                        return app(req, res);
+                    });
+                },
+            });
         }
     }
-};
-
-module.exports.getBaseUrl = function (req) {
-    if (detectedPlatform) {
-        return detectedPlatform.getBaseUrl(req);
-    }
-    throw new Error('A platform has not been detected. Please call autoserve() or autoserve.serve() or autoserve.detect() first.');
 };
 
 module.exports.platforms = Object.freeze(Object.create(platforms));
