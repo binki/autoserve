@@ -7,7 +7,18 @@ const platforms = {};
 var detectedPlatform;
 
 module.exports = function (app) {
-    module.exports.detect().serve(app);
+    // Run in “globals” mode. If you call this method directly, you
+    // cause the module to set itself to support a particular
+    // platform. Then you can directly call getBaseUrl(req) on the
+    // module to discover the baseUrl for a particular request.  If
+    // you want finger grained control over instances, call detect()
+    // directly, but then you have to manually save the returned
+    // platform and call getBaseUrl(req) on that directly.
+    detectedPlatform = module.exports.detect();
+    if (!detectedPlatform) {
+        throw new Error('No supported platform detected.');
+    }
+    detectedPlatform.serve(app);
 };
 
 module.exports.detect = function () {
@@ -42,8 +53,7 @@ module.exports.detect = function () {
                 throw new Error(`Multiple platforms at weight ${weight} were detected. Only one platform may be detected for any given weight. Please adjust weights or fix false positives. Platforms: ${detectedPlatformsString}`);
             }
 
-            detectedPlatform = detectedPlatforms[0];
-            return detectedPlatform;
+            return detectedPlatforms[0];
         }
     }
 };
