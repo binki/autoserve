@@ -87,8 +87,24 @@ module.exports.extendOptions = function (options) {
 // to use the extendOptions() API.
 module.exports.options = {};
 
+// Convenience to override particular properties of a registered
+// platform.
+module.exports.override = function (platformName, obj) {
+    const platform = module.exports.platforms[platformName];
+    if (!platform) {
+        throw new Error(`Platform ${platformName} is not registered. Thus, it cannot be overridden.`);
+    }
+    return module.exports.register(Object.assign({}, platform, obj));
+};
+
 module.exports.platforms = Object.freeze(Object.create(platforms));
 
+// Register a platform. Registered platforms are stored in the
+// platforms property. To make changes to a registered platform,
+// reregister it or call the override() convenience function. When a
+// platform is registered, it is validated and a frozen shallow copy
+// is stored in the registry. Thus, platform implementations must be
+// able to operate even after such a copy.
 module.exports.register = function (platform) {
     platform = Object.freeze(Object.assign({
         getBaseUrl: function () {
