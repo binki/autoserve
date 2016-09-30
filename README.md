@@ -103,7 +103,7 @@ Express.
 
     For example, Apache’s `mod_fcgid` might be configured as follows.
     This would result in
-    [`autoserve-platform-node-fastcgi`](https://github.com/binki/autoserve-platform-ndoe-fastcgi)
+    [`autoserve-platform-node-fastcgi`](https://github.com/binki/autoserve-platform-node-fastcgi)
     being detected and used:
 
         # FilesMatch is more secure (exhibiting less confusing behavior) than AddHandler.
