@@ -1,14 +1,21 @@
-Enable a webapp to get the optimal `http` implementation based on how
-it is deployed. Also provide a way to get the `baseUrl` of the
-deployment.
+Automatically adapt any `http.createServer()`-compatible service to
+any deployment platform.
 
-Ways one might deploy a node-based webapp:
+One might deploy a node-based webapp to any of the following
+platforms:
 
 * [`http`](https://nodejs.org/api/http.html)
 * [`node-fastcgi`](https://github.com/fbbdev/node-fastcgi)
 * Phusion Passenger
+* Custom Platform (see docs below)
+
+But how do you support all these platforms at once? By using an
+abstraction layer such as `autoserve`!
 
 # Usage
+
+To write an application, simply pass the function you would pass to
+`http.createServer()` to `autoserve()`:
 
 `script.cgi`:
 
@@ -26,6 +33,53 @@ Ways one might deploy a node-based webapp:
     };
     
     autoserve(app);
+
+That works OK for a very simple development server or with
+`mod_fcgid`, but doesn’t solve the issue of deploying to a highly
+specialized platform. If the above script is published as an npm
+module named `example-autoserve-app`, you can configure `autoserve`
+prior to `require()`ing your app’s module. This way, you can keep the
+deployment-specific configuration separate from your application
+logic:
+
+`index.cgi`:
+
+    #!/usr/bin/env node
+    'use strict';
+    
+    const autoserve = require('autoserve');
+    
+    // Register a custom platform for the deployment
+    // environment.
+    autoserve.register({
+        detect: () => true,
+        name: 'annoying-http',
+        priority: 100,
+        serve: function (app, options) {
+            require('http').createServer(app).listen(options.port, function () {
+                require('child_process').exec(`:; xdg-open http://localhost:${options.port}/; exit $?\nSTART http://localhost:${options.port}/`);
+            });
+        },
+    });
+    
+    // Override a registered platform’s property. Here
+    // we lower the core http platform’s priority so that
+    // our custom one will win (yes, this example is
+    // contrived).
+    autoserve.override('http', {
+        priority: 99,
+    });
+    
+    // Set options for this environment.
+    autoserve.extendOptions({
+        'annoying-http': {
+            port: 1025+1000*Math.random()|0,
+        },
+    });
+    
+    // The deployed app will see the configuration set
+    // above when it runs.
+    require('example-autoserve-app');
 
 ## Express Usage
 
