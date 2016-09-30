@@ -17,5 +17,5 @@ module.exports = {
     },
     // This platform is “always” available, so give other platforms
     // a chance first.
-    weight: 100,
+    priority: -100,
 };

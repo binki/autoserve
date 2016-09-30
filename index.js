@@ -14,22 +14,24 @@ module.exports = function (app) {
 };
 
 module.exports.detect = function () {
-    const platformsByWeight = {};
+    const platformsByPriority = {};
     for (let platformName in platforms) {
         const platform = platforms[platformName];
-        const sameWeightPlatforms = platformsByWeight[platform.weight] = platformsByWeight[platform.weight] || [];
-        sameWeightPlatforms.push(platform);
+        const samePriorityPlatforms = platformsByPriority[platform.priority] = platformsByPriority[platform.priority] || [];
+        samePriorityPlatforms.push(platform);
     }
-    const weightsList = [];
-    for (let i in platformsByWeight) {
-        weightsList.push(platformsByWeight[i][0].weight);
+    const prioritysList = [];
+    for (let i in platformsByPriority) {
+        prioritysList.push(platformsByPriority[i][0].priority);
     }
-    weightsList.sort();
+    // sort() is not numerical by default. Note we sort descending so
+    // high priority values get visited first.
+    prioritysList.sort((a, b) => b - a);
 
-    for (let weight of weightsList) {
-        const sameWeightPlatforms = platformsByWeight[weight];
+    for (let priority of prioritysList) {
+        const samePriorityPlatforms = platformsByPriority[priority];
         const detectedPlatforms = [];
-        for (let platform of sameWeightPlatforms) {
+        for (let platform of samePriorityPlatforms) {
             if (platform.detect()) {
                 detectedPlatforms.push(platform);
             }
@@ -41,8 +43,8 @@ module.exports.detect = function () {
                         s += ', ';
                     }
                     return s + platform.name;
-                });
-                throw new Error(`Multiple platforms at weight ${weight} were detected. Only one platform may be detected for any given weight. Please adjust weights or fix false positives. Platforms: ${detectedPlatformsString}`);
+                }, '');
+                throw new Error(`Multiple platforms at priority ${priority} were detected. Only one platform may be detected for any given priority. Please adjust prioritys or fix false positives. Platforms: ${detectedPlatformsString}`);
             }
             // Produce the polished “platform” which sets
             // request.baseUrl. This might cause confusion because
@@ -76,15 +78,15 @@ module.exports.register = function (platform) {
         // options on it before launching the autoserve-supporting
         // app.
         options: {},
-        weight: 0,
+        priority: 0,
     }, platform));
 
     if (!platform.name) {
         throw new Error('Platform is missing name.');
     }
 
-    if ((platform.weight|0) !== platform.weight) {
-        throw new Error(`Platform ${platform.name} weight “${platform.weight}”is not an integer.`);
+    if ((platform.priority|0) !== platform.priority) {
+        throw new Error(`Platform ${platform.name} priority “${platform.priority}”is not an integer.`);
     }
 
     for (let requiredFunction of [
